@@ -1,3 +1,6 @@
+
+var mongoclient = require("mongodb").MongoClient;
+
 class Item {
     constructor(name, amount) {
         this.name = name;
@@ -19,6 +22,41 @@ class Item {
         var newAm = this.amount - amm;
         if (newAm < 0) throw new Exception("Item Amount can't be negative.");
         this.amount = newAm;
+    }
+}
+
+class ItemDBController {
+    constructor(url) {
+        this.db = null;
+    }
+    Connect(url) {
+        return mongoclient.connect(url).then((db) => {
+            this.db = db;
+        }).catch(function(err) {
+            throw new Exception("MongoDB connection failed:\n" + err);
+        });
+    }
+
+    Close() {
+        return this.db.close();
+    }
+
+    GetItem(itemName) {
+        
+    }
+
+    Populate() { // Debug method to populate the db with items.
+        var collection = this.db.collection('products');
+        collection.insertMany([
+            {name: 'Tomate',stock: 10},
+            {name: 'Agua',stock: 10},
+            {name: 'Carne',stock: 10},
+            {name: 'Leche',stock: 10},
+            {name: 'Cola Zero',stock: 10},
+          ], function(err, _result) {
+            assert.equal(err, null);
+            console.log("Collection populated successfully.");
+          });
     }
 }
 
