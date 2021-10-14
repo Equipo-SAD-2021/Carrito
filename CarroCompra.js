@@ -1,10 +1,12 @@
 
 var mongoclient = require("mongodb").MongoClient;
 
+const dburl = "mongodb://localhost:27017/";
+
 class Item {
     constructor(name, amount) {
         this.name = name;
-        if (amount <= 0) throw new Exception("Item Amount can't be negative.");
+        if (amount <= 0) throw new Exception("Item amount can't be negative.");
         this.amount = amount;
     }
     GetName() {
@@ -18,70 +20,92 @@ class Item {
         else this.amount += amm;
     }
     RemoveAmount(amm) {
-        if (amm < 0) throw new Exception("Invalid amount specified.");
+        if (amm < 0) throw new Exception("Invalid item amount specified.");
         var newAm = this.amount - amm;
-        if (newAm < 0) throw new Exception("Item Amount can't be negative.");
+        if (newAm < 0) throw new Exception("Item amount can't be negative.");
         this.amount = newAm;
+    }
+    toString() {
+        return this.name + " (" + this.amount + ")";
     }
 }
 
 class ItemDBController {
-    constructor(url) {
+    constructor() {
         this.db = null;
+        this.client = null;
     }
     Connect(url) {
-        return mongoclient.connect(url).then((db) => {
-            this.db = db;
+        return mongoclient.connect(url).then((client) => {
+            this.db = client.db("warehouse");
+            this.client = client;
         }).catch(function(err) {
             throw new Exception("MongoDB connection failed:\n" + err);
         });
     }
 
     Close() {
-        return this.db.close();
+        return this.client.close();
     }
 
     GetItem(itemName) {
-        
+        var collection = this.db.collection('products');
+        return collection.findOne({ name: itemName }).then(async (data) => {
+            return new Promise((cb) => {
+                cb(new Item(data.name, data.stock));
+            });
+        });
     }
 
     Populate() { // Debug method to populate the db with items.
         var collection = this.db.collection('products');
-        collection.insertMany([
-            {name: 'Tomate',stock: 10},
-            {name: 'Agua',stock: 10},
-            {name: 'Carne',stock: 10},
-            {name: 'Leche',stock: 10},
+        return collection.insertMany([
+            {name: 'Tomato',stock: 10},
+            {name: 'Water',stock: 10},
+            {name: 'Meat',stock: 10},
+            {name: 'Milk',stock: 10},
             {name: 'Cola Zero',stock: 10},
-          ], function(err, _result) {
-            assert.equal(err, null);
-            console.log("Collection populated successfully.");
-          });
+          ]);
     }
 }
 
 class ShoppingCart {
-    constructor() {
+    constructor(dbController) {
         this.items = {};
+        this.controller = dbController;
     }
     Add(item) {
-        return new Promise((res) => {
-            if (item in this.items) {
-                this.items[item.GetName()].AddAmount(item.GetAmount());
-            } else {
-                this.items[item.GetName()] = item;
-            }
-            res(this.items[item.GetName()]);
+        return new Promise((res, err) => {
+            this.controller.GetItem(item.GetName()).then((dbItem) => {
+                var cartAmount = 0;
+                var hasItem = item.GetName() in this.items
+                if (hasItem) {
+                    cartAmount = this.items[item.GetName()].GetAmount();
+                }
+                if (cartAmount + item.GetAmount() > dbItem.GetAmount()) {
+                    err(new Error("Not enough stock in the warehouse. Requested (" + (cartAmount + item.GetAmount()) + ") but stock is (" + dbItem.GetAmount() + ")."));
+                } else {
+                    if (hasItem) {
+                        this.items[item.GetName()].AddAmount(item.GetAmount());
+                    } else {
+                        this.items[item.GetName()] = item;
+                    }
+                    res(this.items[item.GetName()]);
+                }
+            });
         });
     }
     Remove(item) {
-        return new Promise((res) => {
-            if (!(item.GetName() in this.items)) throw new Exception("Item not in cart.");
-            this.items[item.GetName()].RemoveAmount(item.GetAmount());
-            if (this.items[item.GetName()].GetAmount() === 0) {
-                delete this.items[item.GetName()];
-                res(null);
-            } else res(this.items[item.GetName()]);
+        return new Promise((res,err) => {
+            if (!(item.GetName() in this.items)) {
+                err(new Error("Item not present in cart."));
+            } else {
+                this.items[item.GetName()].RemoveAmount(item.GetAmount());
+                if (this.items[item.GetName()].GetAmount() === 0) {
+                    delete this.items[item.GetName()];
+                    res(null);
+                } else res(this.items[item.GetName()]);
+            }
         });
     }
     toString() {
@@ -92,21 +116,73 @@ class ShoppingCart {
     }
 }
 
-cart = new ShoppingCart();
+async function main() {
+    var idbc = new ItemDBController();
+    console.log("Trying to connect to the database.");
+    await idbc.Connect(dburl);
+    console.log("Populate the database with the items.");
+    await idbc.Populate();
 
-cart.Add(new Item("Tomate", 3)).then((a) => {
-    cart.Add(new Item("Agua", 5)).then((a2) => {
-        cart.Add(new Item("Carne", 2)).then((a3) => {
-            console.log("" + cart);
-        })
-    })
-});
 
-setTimeout(async () => {
-    await cart.Add(new Item("Leche", 4));
-    await cart.Remove(new Item("Agua", 2));
-    await cart.Add(new Item("Cola Zero", 8));
-    console.log("" + cart);
-}, 1000);
+    cart = new ShoppingCart(idbc);
 
-console.log("All operations queued.");
+    console.log("Adding 3 of Tomato...");
+    await cart.Add(new Item("Tomato", 3)).then((data) => {
+        console.log("=> Cart has now " + data.GetAmount() + " of " + data.GetName());
+    }).catch((data) => {
+        console.log("=> Adding 3 of Tomato failed, reason: \"" + data + "\"");
+    });
+
+    console.log("Adding 5 of Water...");
+    await cart.Add(new Item("Water", 5)).then((data) => {
+        console.log("=> Cart has now " + data.GetAmount() + " of " + data.GetName());
+    }).catch((data) => {
+        console.log("=> Adding 5 of Water failed, reason: \"" + data + "\"");
+    });
+
+    console.log("Trying to add 12 of Meat...");
+    await cart.Add(new Item("Meat", 12)).then((data) => {
+        console.log("=> Cart has now " + data.GetAmount() + " of " + data.GetName());
+    }).catch((data) => {
+        console.log("=> Adding 12 of Meat failed, reason: \"" + data + "\"");
+    });
+
+    console.log("Cart contents right now:\n" + cart);
+
+    console.log("Adding 3 of Water...");
+    await cart.Add(new Item("Water", 3)).then((data) => {
+        console.log("=> Cart has now " + data.GetAmount() + " of " + data.GetName());
+    }).catch((data) => {
+        console.log("=> Adding 3 of Water failed, reason: \"" + data + "\"");
+    });
+
+    console.log("Trying to remove 1 of Cola Zero...");
+    await cart.Remove(new Item("Cola Zero", 1)).then((data) => {
+        console.log("=> Cart has now " + data.GetAmount() + " of " + data.GetName());
+    }).catch((data) => {
+        console.log("=> Removing 1 of Cola Zero failed, reason: \"" + data + "\"");
+    });
+
+    console.log("Trying to add 3 of Water...");
+    await cart.Add(new Item("Water", 3)).then((data) => {
+        console.log("=> Cart has now " + data.GetAmount() + " of " + data.GetName());
+    }).catch((data) => {
+        console.log("=> Adding 3 of Water failed, reason: \"" + data + "\"");
+    });
+
+    console.log("Trying to add 6 of Cola Zero...");
+    await cart.Add(new Item("Cola Zero", 6)).then((data) => {
+        console.log("=> Cart has now " + data.GetAmount() + " of " + data.GetName());
+    }).catch((data) => {
+        console.log("=> Adding 6 of Cola Zero failed, reason: \"" + data + "\"");
+    });
+
+    console.log("Cart contents right now:\n" + cart);
+
+    console.log("Closing the database...");
+    await idbc.Close();
+    console.log("Done!");
+}
+
+main();
+
