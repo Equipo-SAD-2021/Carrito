@@ -3,6 +3,8 @@ const ItemDBController = Carro.ItemDBController;
 const Item = Carro.Item;
 const ShoppingCart = Carro.ShoppingCart;
 
+const dburl = "mongodb://localhost:27017/";
+
 async function main() {
     var idbc = new ItemDBController();
     console.log("Trying to connect to the database.");

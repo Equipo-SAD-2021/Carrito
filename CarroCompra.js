@@ -1,8 +1,6 @@
 
 var mongoclient = require("mongodb").MongoClient;
 
-const dburl = "mongodb://localhost:27017/";
-
 class Item {
     constructor(name, amount) {
         this.name = name;
