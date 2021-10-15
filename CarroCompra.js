@@ -2,60 +2,102 @@
 var mongoclient = require("mongodb").MongoClient;
 
 class Item {
+    /**
+     * Object representing an Item with a certain amount of units.
+     * 
+     * @param {string} name Name of the item.
+     * @param {number} amount Amount of the item.
+     */
     constructor(name, amount) {
         this.name = name;
         if (amount <= 0) throw new Exception("Item amount can't be negative.");
         this.amount = amount;
     }
+    /**
+     * 
+     * @returns {string} Name of the item.
+     */
     GetName() {
         return this.name;
     }
+    /**
+     * 
+     * @returns {number} Amount of the item.
+     */
     GetAmount() {
         return this.amount;
     }
+    /**
+     * 
+     * @param {number} amm Number of units to add or remove from the item.
+     * @returns {number} The resulting amount after performing the operation.
+     */
     AddAmount(amm) {
         if (amm < 0) return RemoveAmount(-amm);
         else this.amount += amm;
+        return this.amount;
     }
+    /**
+     * 
+     * @param {number} amm Number of units to remove from the item (must be >0).
+     * @returns {number} The resulting amount after performing the operation.
+     */
     RemoveAmount(amm) {
         if (amm < 0) throw new Exception("Invalid item amount specified.");
         var newAm = this.amount - amm;
         if (newAm < 0) throw new Exception("Item amount can't be negative.");
         this.amount = newAm;
+        return this.amount;
     }
+    /**
+     * 
+     * @returns {string} The string representation of the object.
+     */
     toString() {
         return this.name + " (" + this.amount + ")";
     }
 }
 
-class ItemDBController {
+class ItemDBControllerConnection {
+
     constructor() {
         this.db = null;
         this.client = null;
     }
-    Connect(url) {
-        return mongoclient.connect(url).then((client) => {
-            this.db = client.db("warehouse");
-            this.client = client;
-        }).catch(function(err) {
-            throw new Exception("MongoDB connection failed:\n" + err);
-        });
-    }
 
+    /**
+     * Closes the connection to the database.
+     * 
+     * @returns {Promise}
+     */
     Close() {
         return this.client.close();
     }
 
+    /**
+     * Obtains an Item object from the item name, with the stock present in the warehouse.
+     * 
+     * @param {string} itemName Name of the item to obtain.
+     * @returns {Promise<Item>} Item object obtained from the name.
+     */
     GetItem(itemName) {
         var collection = this.db.collection('products');
-        return collection.findOne({ name: itemName }).then(async (data) => {
+        return collection.findOne({ name: itemName }).then((data) => {
             return new Promise((cb) => {
-                cb(new Item(data.name, data.stock));
+                if (data)
+                    cb(new Item(data.name, data.stock));
+                else
+                    cb(null);
             });
         });
     }
 
-    Populate() { // Debug method to populate the db with items.
+    /**
+     * Adds several items to the warehouse, for testing purposes.
+     * 
+     * @returns {Promise}
+     */
+    Populate() {
         var collection = this.db.collection('products');
         return collection.insertMany([
             {name: 'Tomato',stock: 10},
@@ -67,11 +109,43 @@ class ItemDBController {
     }
 }
 
+class ItemDBController {
+    /**
+     * Connects to a database containing a collection of items.
+     * 
+     * @param {string} url 
+     * @returns {Promise<ItemDBControllerConnection>} Connection object to use.
+     */ 
+    static Connect(url) {
+        return new Promise((ret, error) => {
+            mongoclient.connect(url).then((client) => {
+                var controller = new ItemDBControllerConnection();
+                controller.db = client.db("warehouse");
+                controller.client = client;
+                ret(controller);
+            }).catch(function(err) {
+                error(new Error("MongoDB connection failed: " + err));
+            });
+        });
+    }
+}
+
 class ShoppingCart {
+    /**
+     * Represents a shopping cart that stores multiple items.
+     * 
+     * @param {ItemDBControllerConnection} dbController DB controller to check for availability.
+     */
     constructor(dbController) {
         this.items = {};
         this.controller = dbController;
     }
+    /**
+     * Adds an item and its quantity to the shopping cart.
+     * 
+     * @param {Item} item The item object to add.
+     * @returns {Promise<Item>} Item object with the new amount stored in the cart.
+     */
     Add(item) {
         return new Promise((res, err) => {
             this.controller.GetItem(item.GetName()).then((dbItem) => {
@@ -93,6 +167,12 @@ class ShoppingCart {
             });
         });
     }
+    /**
+     * Removes an item and its quantity from the shopping cart.
+     * 
+     * @param {Item} item The item object to remove.
+     * @returns {Promise<Item>} Item object with the new amount stored in the cart, or null if all units removed.
+     */
     Remove(item) {
         return new Promise((res,err) => {
             if (!(item.GetName() in this.items)) {
@@ -106,10 +186,14 @@ class ShoppingCart {
             }
         });
     }
+    /**
+     * 
+     * @returns {string} The string representation of the object.
+     */
     toString() {
         var res = "Shopping cart:\n";
         res += "\tContents: \n";
-        Object.keys(this.items).forEach(name => res += "\t\t- " + name + " (" + this.items[name].GetAmount() + ")\n");
+        Object.keys(this.items).forEach(name => res += "\t\t- " + this.items[name] + "\n");
         return res;
     }
 }
