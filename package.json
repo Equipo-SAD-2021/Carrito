@@ -1,0 +1,23 @@
+{
+  "name": "carrito",
+  "version": "1.0.0",
+  "description": "Module that represents a shopping cart.",
+  "main": "CarroCompra.js",
+  "dependencies": {
+    "mongodb": "^4.1.3"
+  },
+  "devDependencies": {},
+  "scripts": {
+    "test": "nodejs CarroCompraTest.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/SADEquipo/Carrito.git"
+  },
+  "author": "Antonio Martínez Leal, Pablo Moreira Flors, Borja Sanz Gresa",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/SADEquipo/Carrito/issues"
+  },
+  "homepage": "https://github.com/SADEquipo/Carrito#readme"
+}
