@@ -77,5 +77,5 @@ Todas las operaciones sobre el objeto `ItemDBControllerConnection` utilizan prom
 ## Autores ✒️
 
 * **Antonio Martínez Leal** - [AntonioM15](https://github.com/AntonioM15)
-* **Pablo Moreira Flors** - [PabloMK7](https://github.com/mariohackandglitch)
+* **Pablo Moreira Flors** - [pabmoflo](https://github.com/pabmoflo)
 * **Borja Sanz Gresa** - [BorjaSanz11](https://github.com/BorjaSanz11)
