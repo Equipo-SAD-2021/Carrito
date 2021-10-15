@@ -33,17 +33,19 @@ En este entorno se dispone de una carpeta compartida `/vagrant` que comunica el 
 npm install mongodb
 ```
 
-Tras esta instrucción ya tenemos la instalación lista.
+Tras esta instrucción ya tenemos la instalación lista. 
+
+Es importante mencionar que, aunque en el repositorio aparece la carpeta de `vagrant_config` al mismo nivel que los archivos de código para facilitar su organización, en la instalación local se debe tener el **contenido** de `vagrant_config` al mismo nivel que el código para poder disponer de este en `/vagrant`.
 
 
-## Desarrollo :hammer_and_wrench:
+## Desarrollo 🛠️
 El proyecto se compone de un módulo JavaScript cuyo archivo principal es `CarroCompra.js`.
 
 ### CarroCompra.js
 
 Se trata de módulo que implementa el carro de la compra, en el cual se definen las siguientes clases:
 
--	`Item`: respresentan objetos creados a partir de un nombre y una cantidad de unidades. Se proporcionan getters para dichos atributos, así como los métodos para añadir y quitar unidades.
+-	`Item`: respresentan objetos creados a partir de un nombre y una cantidad de unidades. Se proporcionan _getters_ para dichos atributos, así como los métodos para añadir y quitar unidades.
 
 -	`ItemDBController`: Consta de un único método estático `Connect()` que establece la conexión a una base de datos MongoDB que nos permite comprobar la cantidad de `Item` disponibles. Esta conexión se retorna como un objeto `ItemDBControllerConnection` sobre el que hacer las operaciones en la base de datos.
 
@@ -58,16 +60,16 @@ Se trata de módulo que implementa el carro de la compra, en el cual se definen 
 
 ## Pruebas 🔩
 
-Se ha creado un archivo JavaScript cuyo propósito es la comprobación de la funcionalidad del módulo. Se puede ejecutar mediante la orden:
+Se ha creado un archivo JavaScript con nombre `CarroCompraTest.js` cuyo propósito es la comprobación de la funcionalidad del módulo. Se puede ejecutar mediante la orden:
 ```
 npm test
 ```
 
 ### CarroCompraTest.js
-En primer lugar, se importa el módulo `CarroCompra`, se crea una conexión con la base de datos MongoDB de manera local y se ingresan los datos de prueba en esta. A continuación, se hacen diversas operaciones que comprueban el correcto funcionamiento del módulo. Estas son añadir y quitar objetos comprobando que las operaciones tengan en cuenta la disponibilidad de onbjetos en la base de datos.
+En primer lugar se importa el módulo `CarroCompra` para poder crear una conexión con la base de datos MongoDB de manera local e ingresar los datos de prueba en esta. Posteriormente, se hacen diversas operaciones que comprueban el correcto funcionamiento del módulo. Estas son añadir y quitar objetos comprobando que las operaciones tengan en cuenta la disponibilidad de objetos en la base de datos.
 
 
-## Relación del código con los conceptos de asincronía de JavaScript :twisted_rightwards_arrows:
+## Relación del código con los conceptos de asincronía de JavaScript 🔀
 
 Todas las operaciones sobre el objeto `ItemDBControllerConnection` utilizan promesas, de la misma manera que todas las operaciones sobre `ShoppingCart`. Además, dichas operaciones realizan una correcta propagación de errores. Para poder asegurarnos de la ejecución síncrona de ciertas operaciones, se ha hecho uso de bloques *async*/*await*. Nótese, también, el uso de *callbacks* en las funciones *then*, *catch* y *finally*, utilizadas en el manejo de promesas.
 
