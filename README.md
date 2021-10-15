@@ -11,7 +11,7 @@ Este seminario gira alrededor de los patrones de JavaScript asíncronos, destaca
 
 ## Pre-requisitos 📋
 
-El software necesario para ejecutar el proyecto es:
+El *software* necesario para ejecutar el proyecto es:
 
 * **Node** - Entorno de ejecución utilizado
 * **MongoDB** - Base de datos utilizada
@@ -37,29 +37,39 @@ Tras esta instrucción ya tenemos la instalación lista.
 
 
 ## Desarrollo :hammer_and_wrench:
-El proyecto se compone de dos archivos de `JavaScript`
+El proyecto se compone de un módulo JavaScript cuyo archivo principal es `CarroCompra.js`.
 
 ### CarroCompra.js
 
-En el fichero “CarroCompra.js” se definen las siguientes clases:
+Se trata de módulo que implementa el carro de la compra, en el cual se definen las siguientes clases:
 
--	`Item`: objetos item creados a partir de un nombre y una cantidad de unidades. Se proporcionan getters para dichos atributos, así como los métodos para añadir y quitar cantidades.
+-	`Item`: respresentan objetos creados a partir de un nombre y una cantidad de unidades. Se proporcionan getters para dichos atributos, así como los métodos para añadir y quitar unidades.
 
--	`ShoppingCart`: objetos carro de compra. Se dispone de métodos para manejar los objetos item (en un atributo vector de Items): añadir, quitar y toString.
+-	`ItemDBController`: Consta de un único método estático `Connect()` que establece la conexión a una base de datos MongoDB que nos permite comprobar la cantidad de `Item` disponibles. Esta conexión se retorna como un objeto `ItemDBControllerConnection` sobre el que hacer las operaciones en la base de datos.
 
--	`ItemDBController`: se establece una conexión local a una base de datos MongoDB que nos permite almacenar los Items. De esta manera, el carro de compra accederá a la base de datos para realizar sus operaciones en función de los items disponibles. Se dispone de los métodos que manejan la conexión a la BD (constructor, connect y close), el método de obtención de objetos item y, un método para ingresar datos en la BD.
+-	`ItemDBControllerConnection`: consta de métodos para realizar las operaciones sobre la base de datos: obtención de objetos `Item` (`GetItem()`), un método de ingreso de datos en la BD establecido para pruebas (`Populate()`) y, una función para cerrar la conexión con MongoDB (`Close()`).
 
-Relación del código con los conceptos de asincronía de JavaScript:
--	Promesas: 
--	Callbacks:
--	Bloques async/await:
-*INSERTAR EN FUNCIÓN DE LÍNEAS O NOMBRE DE MÉTODOS CUANDO EL CÓDIGO ESTÉ ACABADO*
+-	`ShoppingCart`: objetos carro de compra. Las siguientes operaciones utilizan un objeto `ItemDBControllerConnection` para comprobar la disponibilidad del inventario de `Item` en la base de datos. Estas son:
+    - Añadir un objeto `Item` si no existe.
+    - Añadir o quitar unidades de un `Item` ya existente.
+    - Traducción del contenido del carro a una cadena de caracteres.
 
 
 
 ## Pruebas 🔩
 
+Se ha creado un archivo JavaScript cuyo propósito es la comprobación de la funcionalidad del módulo. Se puede ejecutar mediante la orden:
+```
+npm test
+```
 
+### CarroCompraTest.js
+En primer lugar, se importa el módulo `CarroCompra`, se crea una conexión con la base de datos MongoDB de manera local y se ingresan los datos de prueba en esta. A continuación, se hacen diversas operaciones que comprueban el correcto funcionamiento del módulo. Estas son añadir y quitar objetos comprobando que las operaciones tengan en cuenta la disponibilidad de onbjetos en la base de datos.
+
+
+## Relación del código con los conceptos de asincronía de JavaScript :twisted_rightwards_arrows:
+
+Todas las operaciones sobre el objeto `ItemDBControllerConnection` utilizan promesas, de la misma manera que todas las operaciones sobre `ShoppingCart`. Además, dichas operaciones realizan una correcta propagación de errores. Para poder asegurarnos de la ejecución síncrona de ciertas operaciones, se ha hecho uso de bloques *async*/*await*. Nótese, también, el uso de *callbacks* en las funciones *then*, *catch* y *finally*, utilizadas en el manejo de promesas.
 
 
 ## Autores ✒️
